@@ -1,0 +1,41 @@
+include:
+  project: 'somoscooper/gitlab-cicd-templates'
+  ref: 'master'
+  file: 'java/.gitlab-ci-template.yml'
+
+
+stages:
+  - build
+  - deploy
+  - deploy-trt
+#  - teste
+
+variables:
+  BUILD_BINARY_JAR: target/*jar
+
+#before:
+#  stage: .pre
+#  tags:
+#    - projetosjava
+#  script:
+#    - ls -lha /cache
+#    - whoami
+#    - pwd
+#    - echo "${CI_COMMIT_BRANCH}"
+#    - cd ~
+#    - pwd
+#    - ls -lha 
+#    - ls -lha  ~/.m2/
+#    - echo "$(date)" >> ~/.m2/teste.txt 
+#    - cat ~/.m2/teste.txt
+##    - cd - && chmod +x ./test.sh && ./test.sh
+#
+#teste:
+#  stage: teste
+#  tags:
+#    - projetosjava
+#  script:
+##    - ls -lha /cache
+#    - ls -lha  ~/.m2/
+#    - ls -lha  /opt/maven
+#    - mvn help:evaluate -Dexpression=settings.localRepository

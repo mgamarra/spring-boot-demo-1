@@ -1,0 +1,1 @@
+Imagem base para build de aplicações java

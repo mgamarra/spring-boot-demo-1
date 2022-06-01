@@ -1,0 +1,13 @@
+include:
+  project: 'somoscooper/gitlab-cicd-templates'
+  ref: 'master'
+  file: 'java/.gitlab-ci-template.yml'
+
+
+stages:
+  - build
+  - deploy
+  - deploy-trt
+
+variables:
+  BUILD_BINARY_JAR: target/*jar

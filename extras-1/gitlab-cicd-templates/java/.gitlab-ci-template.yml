@@ -1,0 +1,117 @@
+image: nexus.brb.com.br:6000/arq/gitlab-cicd-jdk:latest
+
+variables:
+#  MAVEN_CLI_OPTS: "-s .m2/settings.xml --batch-mode"
+  MAVEN_CLI_OPTS: "--batch-mode"
+#  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+#  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_OPTS: "-Dmaven.repo.local=/root/.m2/repository"
+  M2_HOME: "/root/.m2/"
+  NEXUS_REPO_RELEASE_URL: $Nexus_REPO_REALEASE_URL
+  NEXUS_REPO_DOCKER_URL: $Nexus_REPO_DOCKER_PRIVATE_URL
+  NEXUS_USER: $Nexus_REPO_USER
+  NEXUS_PASSWORD: $Nexus_REPO_PASS
+  NEXUS_REPO_GROUP_URL: $Nexus_REPO_GROUP_URL
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - m2/repository
+#cache:
+#  paths:
+#    - .m2/
+#before_script:
+#    - mvn -version
+#    - mvn help:evaluate -Dexpression=settings.localRepository
+
+build:
+  stage: build
+  tags:
+    - projetosjava
+  artifacts:
+    expire_in: 60 mins
+    paths:
+      - "${BUILD_BINARY_JAR}"
+  script:
+    - | 
+        git config --global user.name ${GITLAB_USER_NAME} && \
+        git config --global user.email ${GITLAB_USER_EMAIL} && \
+        git config --global push.default simple
+    - git config --global http.sslVerify false
+    - git remote set-url --push origin "${CI_REPOSITORY_URL}"
+    - git checkout -B "${CI_COMMIT_REF_NAME}" "${CI_COMMIT_SHA}"
+    #- mvn clean install
+    - mvn clean install -DskipTests=true
+    - | 
+        if [ -f "target/site/jacoco/index.html" ]; then
+          cat target/site/jacoco/index.html
+        fi    
+  only:
+    #- desen
+    - hmlg
+    - master
+
+deploy-desen:
+  image: nexus.brb.com.br:6000/arq/gitlab-cicd-oc:latest
+  stage: deploy
+  tags:
+    - projetosjava
+  dependencies:
+    - build
+  script:
+    - echo "${OPENSHIFT_PROD_USERNAME} ${OPENSHIFT_PROD_PASSWORD} ${OPENSHIFT_PROD_URL}"
+    - oc login -u "${OPENSHIFT_PROD_USERNAME}" -p "${OPENSHIFT_PROD_PASSWORD}" "${OPENSHIFT_PROD_URL}" --insecure-skip-tls-verify
+# sem deploys para commits na desen
+#    - oc project "${OPENSHIFT_PROJECT_DEV}"
+#    - oc start-build "${OPENSHIFT_BC_NAME}" --from-file="." --follow    
+#    - oc get build | grep "${OPENSHIFT_BC_NAME}" | tail -1 | grep Complete
+  only:
+    - desen
+
+
+deploy-hmlg:
+  image: nexus.brb.com.br:6000/arq/gitlab-cicd-oc:latest
+  stage: deploy
+  tags:
+    - projetosjava
+  dependencies:
+    - build
+  script:
+    - oc login -u "${OPENSHIFT_PROD_USERNAME}" -p "${OPENSHIFT_PROD_PASSWORD}" "${OPENSHIFT_PROD_URL}" --insecure-skip-tls-verify
+    - oc project "${OPENSHIFT_PROJECT_HOMOL}"
+    - oc start-build "${OPENSHIFT_BC_NAME}" --from-file="." --follow   
+    - oc get build | grep "${OPENSHIFT_BC_NAME}" | tail -1 | grep Complete
+  only:
+    - hmlg    
+
+deploy-trt:
+  image: nexus.brb.com.br:6000/arq/gitlab-cicd-oc:latest
+  when: manual
+  stage: deploy-trt
+  tags:
+    - projetosjava
+  dependencies:
+    - build
+  script:
+    - oc login -u "${OPENSHIFT_PROD_USERNAME}" -p "${OPENSHIFT_PROD_PASSWORD}" "${OPENSHIFT_PROD_URL}" --insecure-skip-tls-verify
+    - oc project "${OPENSHIFT_PROJECT_TRT}"
+    - oc start-build "${OPENSHIFT_BC_NAME}" --from-file="." --follow   
+    - oc get build | grep "${OPENSHIFT_BC_NAME}" | tail -1 | grep Complete
+  only:
+    - hmlg    
+
+
+deploy-prd:
+  image: nexus.brb.com.br:6000/arq/gitlab-cicd-oc:latest
+  stage: deploy
+  tags:
+    - projetosjava
+  dependencies:
+    - build
+  script:
+    - oc login -u "${OPENSHIFT_PROD_USERNAME}" -p "${OPENSHIFT_PROD_PASSWORD}" "${OPENSHIFT_PROD_URL}" --insecure-skip-tls-verify
+    - oc project "${OPENSHIFT_PROJECT_PROD}"
+    #- oc start-build "${OPENSHIFT_BC_NAME}" --from-file="." --follow   
+    #- oc get build | grep "${OPENSHIFT_BC_NAME}" | tail -1 | grep Complete
+  only:
+    - master    
