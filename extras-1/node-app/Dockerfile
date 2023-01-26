@@ -1,5 +1,6 @@
-FROM node:16
-
+#FROM node:16
+#docker build --network host -f Dockerfile -t t1:latest . 
+FROM registry.access.redhat.com/ubi8/nodejs-16-minimal:1-89
 # Create app directory
 WORKDIR /usr/src/app
 
