@@ -1,0 +1,367 @@
+#!/bin/bash
+#sudo ln -s /home/mauriciogamarra/desenv/git/monorepo-utils/coop/pgn/docker-images/pgn-back-builder-2/occi4 /usr/bin/occi4
+
+#sudo rm /usr/bin/occi4
+
+#set -x
+
+app_semver="0.2.1"
+
+# colored errors and warnings
+function echoerr() { echo -e "\033[0;31mERROR: ${@}\033[0m"; }
+function echowarn() { echo -e "\033[0;33mWARNING: ${@}\033[0m"; }
+
+
+function oc_init {
+  pwd
+  #mkdir -p .m2/repository
+  #cp /settings.xml .m2/
+  #mkdir -p ~/.m2/repository
+  #cp /settings.xml ~/.m2
+  #cp -r /.m3/. .m2/repository/
+  du -sh ~/.m2/repository/
+
+}
+
+function oc_configMapRemoveVars {
+    OPENSHIFT_PROJECT=$2 
+    OPENSHIFT_BC_NAME=$3
+
+    #VARS=$(oc set env deployments/$OPENSHIFT_BC_NAME -n $OPENSHIFT_PROJECT --list | grep -v "deploymentconfigs/" | awk -F ' ' '{print $2}' |  awk '{print}' ORS='- ')
+    VARS=$(oc set env deployments/$OPENSHIFT_BC_NAME -n $OPENSHIFT_PROJECT --list | grep -v "deploymentconfigs/" | sed 's/# //g'| sed 's/=/ /g' | awk -F ' ' '{print $1}' |  awk '{print}' ORS='- ')
+
+    echo "oc set env deployments/$OPENSHIFT_BC_NAME $VARS -n $OPENSHIFT_PROJECT"
+    oc set env deployments/$OPENSHIFT_BC_NAME $VARS -n $OPENSHIFT_PROJECT
+
+}
+
+function oc_checkprereqsCM {
+    OPENSHIFT_PROJECT=$2 
+    OPENSHIFT_BC_NAME=$3
+    PROPERTY_FILE="ocp/pgn-$OPENSHIFT_BC_NAME/config-map.properties"
+    
+    echo "oc_checkprereqsCM $OPENSHIFT_PROJECT $OPENSHIFT_BC_NAME"
+
+    if [ -f $PROPERTY_FILE ]; then
+      ISSUES=$( grep -cE "^(URL_).*(//gateway)" $PROPERTY_FILE  ) 
+    
+      if [ "$ISSUES" -gt 0 ]; then
+        echoerr "Erro: Existem propriedades apontando para o gateway  $ISSUES"
+        grep -E "^(URL_).*(//gateway)" $PROPERTY_FILE 
+        exit 1  
+      fi
+    fi
+
+}
+function oc_checkprereqs {
+    #OPENSHIFT_PROJECT=$2 
+    #OPENSHIFT_BC_NAME=$3
+    #oc_checkprereqsCM $OPENSHIFT_PROJECT $OPENSHIFT_BC_NAME
+    oc_checkprereqsCM "$@"    
+}
+
+function oc_createConfigMap {
+
+    OPENSHIFT_PROJECT=$2 
+    OPENSHIFT_BC_NAME=$3
+
+    #echoerr "OPENSHIFT_PROJECT=$OPENSHIFT_PROJECT"
+    #echoerr "OPENSHIFT_BC_NAME=$OPENSHIFT_BC_NAME"
+
+    PROPERTY_FILE="ocp/$OPENSHIFT_PROJECT/config-map.properties"
+    OBJECT_NAME="$OPENSHIFT_BC_NAME-config.map"
+    echo $PROPERTY_FILE
+    
+    CRIAR=true
+    ##if [ "${CI_COMMIT_BRANCH}" == "homol" ] || [ "${CI_COMMIT_BRANCH}" == "master" ]; then
+    #if [ "${CI_COMMIT_BRANCH}" == "master" ]; then
+    #  CRIAR=false
+    #fi
+    if [ "${CRIAR}" == true ] ; then
+      
+      #if [ ! -s $PROPERTY_FILE  ]; then
+      #    echo "$PROPERTY_FILE  does not exist or is empty"
+      #    echo "AUTO_PROP=true" >> $PROPERTY_FILE
+      #fi
+      if [ -f $PROPERTY_FILE  ]; then  
+        #echo "Existe PROPERTY_FILE $PROPERTY_FILE" 
+        EXISTE=$( oc get cm -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; } )
+        if [ -n "$EXISTE" ]; then  
+          oc delete configmap $OBJECT_NAME -n $OPENSHIFT_PROJECT
+        fi
+        
+        #remove comentários
+        sed -r -i -e '/^\s*$|^#/d' $PROPERTY_FILE
+        #substitui ' = ' pr '='
+        sed -r -i -e 's/\s=\s/=/g' $PROPERTY_FILE
+
+        cat $PROPERTY_FILE
+        oc create configmap $OBJECT_NAME --from-env-file=$PROPERTY_FILE -n $OPENSHIFT_PROJECT
+        #oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/$OBJECT_NAME -n $OPENSHIFT_PROJECT
+      fi
+    #else
+    #    echo "Nas branchs protegidas ou não existe PROPERTY_FILE $PROPERTY_FILE" 
+    #    #oc get cm -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; }
+    #    EXISTE=$( oc get cm -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; } )
+    #    if [ -n "$EXISTE" ]; then  
+    #      echo "Existe o cm $OPENSHIFT_PROJECT" 
+    #      oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/$OBJECT_NAME -n $OPENSHIFT_PROJECT
+    #    fi    
+    fi
+
+    EXISTE=$( oc get cm -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; } )
+    if [ -n "$EXISTE" ]; then  
+      echo "Existe o cm $OPENSHIFT_PROJECT" 
+      oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/$OBJECT_NAME -n $OPENSHIFT_PROJECT
+    fi    
+
+    #oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/global-config.map -n $OPENSHIFT_PROJECT
+}
+
+function oc_createSecret {
+    OPENSHIFT_PROJECT=$2 
+    OPENSHIFT_BC_NAME=$3
+    echo "oc_createSecret OPENSHIFT_PROJECT OPENSHIFT_BC_NAME"
+
+    PROPERTY_FILE="ocp/$OPENSHIFT_PROJECT/secret.properties"
+    OBJECT_NAME="$OPENSHIFT_BC_NAME-secret"
+    echo "Nome do PROPERTY_FILE $PROPERTY_FILE"
+
+    CRIAR=true
+    if [ "${CI_COMMIT_BRANCH}" == "homol" ] || [ "${CI_COMMIT_BRANCH}" == "master" ]; then
+      CRIAR=false
+    fi
+    if [ "${CRIAR}" == true ] && [ -f $PROPERTY_FILE ]; then
+        echo "Existe PROPERTY_FILE $PROPERTY_FILE" 
+        EXISTE=$( oc get secrets -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; } )
+        if [ -n "$EXISTE" ]; then  
+            #echo "existe $OBJECT_NAME" 
+            oc delete secret $OBJECT_NAME -n $OPENSHIFT_PROJECT
+        #else 
+        #    #echo "$OBJECT_NAME não existe" 
+        fi
+
+
+        #sed -r -i -e '/^\s*$|^#/d' $PROPERTY_FILE
+
+        #remove comentários
+        sed -r -i -e '/^\s*$|^#/d' $PROPERTY_FILE
+        #substitui ' = ' pr '='
+        sed -r -i -e 's/\s=\s/=/g' $PROPERTY_FILE
+        
+        if ! [ -s $PROPERTY_FILE ]; then 
+          echo "file $PROPERTY_FILE is empty"
+          return 0
+        fi
+
+        echo "oc create secret generic $OBJECT_NAME --from-env-file=$PROPERTY_FILE --type=opaque -n $OPENSHIFT_PROJECT"
+        oc create secret generic $OBJECT_NAME --from-env-file=$PROPERTY_FILE --type=opaque -n $OPENSHIFT_PROJECT
+        oc set env deployments/$OPENSHIFT_BC_NAME --from secret/$OBJECT_NAME -n $OPENSHIFT_PROJECT
+    else
+        echo "Nas branchs protegidas ou não existe PROPERTY_FILE $PROPERTY_FILE" 
+        #oc get secrets -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; }
+        EXISTE=$( oc get secrets -n $OPENSHIFT_PROJECT | { grep ^$OBJECT_NAME || true; } )
+        if [ -n "$EXISTE" ]; then  
+          echo "Existe o secret $OPENSHIFT_PROJECT" 
+          oc set env deployments/$OPENSHIFT_BC_NAME --from secret/$OBJECT_NAME -n $OPENSHIFT_PROJECT
+        fi    
+    fi
+
+
+}
+
+function oc_setGlobalConfigs {
+
+#    PGN_SECRETS_EXISTE=$( oc get secrets -n $OPENSHIFT_PROJECT | { grep pgn-secrets || true; } )
+#    if [ -n "$PGN_SECRETS_EXISTE" ]; then 
+#        oc set env deployments/$OPENSHIFT_BC_NAME --from secret/pgn-secrets -n $OPENSHIFT_PROJECT
+#    fi
+
+#    PGN_SECRETS_SENHA_BANCO_HOMOL_EXISTE=$( oc get secrets -n $OPENSHIFT_PROJECT | { grep senha-banco-homol || true; } )
+#    if [ -n "$PGN_SECRETS_SENHA_BANCO_HOMOL_EXISTE" ]; then 
+#        oc set env deployments/$OPENSHIFT_BC_NAME --from secret/senha-banco-homol -n $OPENSHIFT_PROJECT
+#    fi
+
+    PGN_SECRETS_EXISTE=$( oc get secrets -n $OPENSHIFT_PROJECT | { grep '^pgn ' || true; } )
+    if [ -n "$PGN_SECRETS_EXISTE" ]; then 
+        oc set env deployments/$OPENSHIFT_BC_NAME --from secret/pgn -n $OPENSHIFT_PROJECT
+    fi
+
+    EXISTE=$( oc get secrets -n $OPENSHIFT_PROJECT | { grep senha-banco-homol || true; } )
+    if [ -n "$EXISTE" ]; then 
+        oc set env deployments/$OPENSHIFT_BC_NAME --from secret/senha-banco-homol -n $OPENSHIFT_PROJECT
+    fi
+
+
+    EXISTE=$( oc get configmap -n $OPENSHIFT_PROJECT | { grep '^pgn ' || true; } )
+    if [ -n "$EXISTE" ]; then 
+        oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/pgn -n $OPENSHIFT_PROJECT
+    fi
+
+    EXISTE=$( oc get configmap -n $OPENSHIFT_PROJECT | { grep global-config.map  || true; } )
+    if [ -n "$EXISTE" ]; then 
+        oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/global-config.map  -n $OPENSHIFT_PROJECT
+    fi
+    EXISTE=$( oc get configmap -n $OPENSHIFT_PROJECT | { grep bancosql  || true; } )
+    if [ -n "$EXISTE" ]; then 
+        oc set env deployments/$OPENSHIFT_BC_NAME --from configmap/bancosql  -n $OPENSHIFT_PROJECT
+    fi
+
+
+}
+
+function pgnci_pwd {
+    echo "$(pwd) $@"
+}
+
+
+function pgnci_artifactDownload {
+   echo "pgnci_artifactDownload $@"
+  POM_FILE=$2
+  ARTIFACTID=$3
+  OUTPUT_FILE=$4
+
+  OUTPUT_DIR=${OUTPUT_FILE%/*}
+  #mkdir -p "${OUTPUT_FILE%/*}"
+
+  mkdir -p $OUTPUT_DIR
+
+  VERSAO=$(cat $POM_FILE | grep SNAP| awk -F'[<>]' '/<version>/{print $3}')
+  VERSAO=${VERSAO%"-SNAPSHOT"}
+  MAJOR=$(echo $VERSAO | cut -d "." -f 1)
+  MINOR=$(echo $VERSAO | cut -d "." -f 2)
+  PATCH=$(echo $VERSAO | cut -d "." -f 3)
+  PATCH=$(($PATCH - 1))
+
+#  echo $VERSAO
+#  echo $MAJOR
+#  echo $MINOR
+#  echo $PATCH
+#  echo $PATCH
+
+#  ARTIFACTID=$(mvn -f $POM_FILE org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.artifactId |grep -Ev '(^\[|Download\w+:)')
+#  VERSAO=$(mvn -f $POM_FILE org.apache.maven.plugins:maven-help-plugin:evaluate -Dexpression=project.version |grep -Ev '(^\[|Download\w+:)')
+#  VERSAO=${VERSAO%"-SNAPSHOT"}
+#  MAJOR=$(echo $VERSAO | cut -d "." -f 1)
+#  MINOR=$(echo $VERSAO | cut -d "." -f 2)
+#  PATCH=$(echo $VERSAO | cut -d "." -f 3)
+#  PATCH=$(($PATCH - 1))
+
+  echo "POM_FILE    " + $POM_FILE
+  echo "OUTPUT_FILE " + $OUTPUT_FILE 
+  echo "OUTPUT_DIR  " + $OUTPUT_DIR 
+
+  echo "ARTIFACTID  " + $ARTIFACTID
+  echo "VERSAO      " + $VERSAO
+  echo "MAJOR       " + $MAJOR
+  echo "MINOR       " + $MINOR
+  echo "PATCH       " + $PATCH
+  echo "PATCH       " + $PATCH
+
+#  echo "wget http://nexus.cooperforte.coop/repository/maven-releases/br/coop/cooperforte/$ARTIFACTID/${MAJOR}.${MINOR}.${PATCH}/$ARTIFACTID-${MAJOR}.${MINOR}.${PATCH}.jar -P $OUTPUT_DIR"
+#  wget http://nexus.cooperforte.coop/repository/maven-releases/br/coop/cooperforte/$ARTIFACTID/${MAJOR}.${MINOR}.${PATCH}/$ARTIFACTID-${MAJOR}.${MINOR}.${PATCH}.jar -P $OUTPUT_DIR
+
+#  echo "wget -O $OUTPUT_FILE http://nexus.cooperforte.coop/repository/maven-releases/br/coop/cooperforte/$ARTIFACTID/${MAJOR}.${MINOR}.${PATCH}/$ARTIFACTID-${MAJOR}.${MINOR}.${PATCH}.jar "
+  wget -O $OUTPUT_FILE http://nexus.cooperforte.coop/repository/maven-releases/br/coop/cooperforte/$ARTIFACTID/${MAJOR}.${MINOR}.${PATCH}/$ARTIFACTID-${MAJOR}.${MINOR}.${PATCH}.jar
+
+
+}
+
+
+function checkFails {
+    FILE=$1
+    CHECK_TYPE=$2
+    echo "$FILE"
+    echo "$CHECK_TYPE"
+    NUMBER=$(grep -E "<$CHECK_TYPE>[0-9]{1,4}</$CHECK_TYPE>" $FILE |  sed 's/[^0-9]*//g')
+    echo $NUMBER
+    if [ "$NUMBER" -gt 0 ]; then
+        echo "falhou"
+        exit 1 
+    fi    
+}
+
+function checkFailsafeSummary {
+    if [ "${CI_COMMIT_BRANCH}" == "master" ]; then
+      exit 0  
+    fi
+    for i in $(find -name failsafe-summary.xml); do               
+        checkFails $i errors
+        checkFails $i failures
+        checkFails $i skipped
+
+    #    if grep -E "<errors>10</errors>" $i; then do 
+    #    
+    #    fi
+    done
+}
+
+function testsShouldIncludeAssertions {
+  if [ "${CI_COMMIT_BRANCH}" == "master" ]; then
+    exit 0  
+  fi
+
+  PROJECT=$2
+  BRANCH=$3
+  LOCATION="http://sonarqube.cloud.cooperforte.coop/api/issues/search?componentKeys=$PROJECT&branch=$BRANCH&rules=java:S2699&resolved=false"
+  CONTENT=$(curl -sS "$LOCATION")
+  ISSUES=$( jq -r  '.total' <<< "${CONTENT}" ) 
+  #echo $CONTENT | jq .
+  echo "testsShouldIncludeAssertions $ISSUES"
+
+  if [ "$ISSUES" -gt 0 ]; then
+    echo "falhou tests Should Include Assertions $ISSUES"
+    exit 1  
+  fi  
+}
+
+### CHAMADAS EXTERNAS - Argumentos do script -----------------------------------------------#
+main () {
+  case $1 in
+    "pwd")
+      pgnci_pwd "$@"
+      ;;
+    "checkprereqs")
+      oc_checkprereqs "$@"
+      ;;      
+    "createObjects")
+      oc_configMapRemoveVars "$@"
+      oc_setGlobalConfigs "$@"
+      oc_createConfigMap "$@"
+      oc_createSecret "$@"
+      ;;
+    "version")
+      echo "pgnci-$app_semver $2"
+      exit 0
+      ;;
+    "init")
+      oc_init "$@"
+      exit 0
+      ;;
+    "artifactDownload")
+      pgnci_artifactDownload "$@"
+      exit 0
+      ;;
+    "checkFailsafeSummary")
+      checkFailsafeSummary "$@"
+      exit 0
+      ;;
+    "testsShouldIncludeAssertions")
+      testsShouldIncludeAssertions "$@"
+      exit 0
+      ;;
+    *)
+
+    
+      echo "Erro: argumento inválido"
+      exit 1
+      ;;
+  esac
+}
+### ----------------------------------------------------------------------------------------#
+
+# Chamada para possibilitar testes. Só entra na main se não for via source
+if [[ "${#BASH_SOURCE[@]}" -eq 1 ]]; then
+    echo "$@" 
+  main "$@"
+fi
