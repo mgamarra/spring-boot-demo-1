@@ -1,0 +1,10 @@
+
+1. Separação de código e configuração: Externalizar as configurações da aplicação permite separar as configurações do código, facilitando o gerenciamento e a modificação das configurações sem a necessidade de recompilar ou redesenvolver o código da aplicação.
+
+2. Flexibilidade: Ao externalizar as configurações, é possível alterá-las em tempo de execução, sem reiniciar os contêineres da aplicação. Isso permite ajustar dinamicamente parâmetros de configuração, como conexões de banco de dados, limites de recursos e variáveis de ambiente.
+
+3. Portabilidade: Externalizar as configurações facilita a implantação da mesma aplicação em diferentes ambientes ou clusters Kubernetes, pois cada ambiente pode ter suas próprias configurações específicas. Isso permite fornecer arquivos de configuração adequados para cada ambiente sem modificar o código principal.
+
+Segurança: Manter configurações sensíveis no código da aplicação é arriscado. Ao externalizá-las, é possível armazená-las de forma segura, como variáveis de ambiente ou segredos gerenciados pelo Kubernetes, reduzindo o risco de exposição acidental de informações confidenciais.
+
+Reutilização de imagens de contêiner: Externalizar as configurações permite criar imagens de contêiner genéricas e reutilizáveis, independentes das configurações específicas da aplicação. Isso simplifica a criação e o gerenciamento de um registro de imagens compartilhadas, evitando a necessidade de criar imagens separadas para cada configuração.
