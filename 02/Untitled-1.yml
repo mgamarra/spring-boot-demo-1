@@ -1,4 +1,12 @@
-operatorgroup.yaml
+https://paste.mozilla.org/uRMUmOr3 
+https://paste.mozilla.org/uRMUmOr3
+About History New snippet
+JavaScript Expires in: 59 minutes
+Delete Now
+Raw
+Slim
+#segundo
+
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -49,6 +57,13 @@ spec:
       type: "fluentd"
       fluentd: {}
 
+
+Copy Snippet
+Edit Snippet
+ Wordwrap
+paste.mozilla.org allows you to share code snippets and notes with others. These pastes require a link to be viewed; they are not private. Anyone with the link is able to see the paste and also delete it.
+
+Please refrain from sharing personal or sensitive information on this website to avoid it being viewed by other parties.
 
 #segundo
 ​
@@ -61,7 +76,6 @@ spec:
   targetNamespaces:
   - openshift-logging
 ​
-subscription.yaml
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
@@ -75,7 +89,6 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
 ​
-clusterlogging.yaml
 #terceiro
 apiVersion: "logging.openshift.io/v1"
 kind: "ClusterLogging"
@@ -103,5 +116,3 @@ spec:
     logs:
       type: "fluentd"
       fluentd: {}
-
-
