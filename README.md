@@ -7,3 +7,6 @@ curl -k -H "Content-Type: application/json" -X PUT --data-binary @tmp.json http:
 
 
 https://access.redhat.com/solutions/4165791
+
+
+https://docs.openshift.com/container-platform/4.8/logging/cluster-logging-deploying.html#cluster-logging-deploy-cli_cluster-logging-deploying
