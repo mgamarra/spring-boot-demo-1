@@ -1,0 +1,69 @@
+
+Para atualizar o certificado do seu cluster OpenShift 4.8, siga os passos abaixo:
+
+1. Verifique o Certificado Atual
+Primeiro, verifique o estado atual dos certificados para entender quais precisam ser renovados. Você pode usar os seguintes comandos:
+
+sh
+Copiar código
+oc get certificates -n openshift-ingress-operator
+oc describe certificate <nome-do-certificado> -n openshift-ingress-operator
+2. Renove o Certificado do Ingress Operator
+Se o certificado do Ingress Operator estiver expirando, você pode regenerar o certificado. Primeiro, encontre o Secret associado:
+
+sh
+Copiar código
+oc get secrets -n openshift-ingress
+Procure pelo Secret que contém o certificado TLS, normalmente nomeado como router-certs-default. Uma vez identificado, você pode deletar esse Secret. O Ingress Operator vai automaticamente recriá-lo com novos certificados.
+
+sh
+Copiar código
+oc delete secret router-certs-default -n openshift-ingress
+3. Renove os Certificados do Cluster
+Se precisar renovar os certificados do cluster, você pode usar o comando oc adm para recriar os certificados do cluster:
+
+sh
+Copiar código
+oc adm certificate approve <nome-da-solicitação>
+4. Verifique a Renovação
+Após a renovação, verifique novamente os certificados para garantir que foram atualizados corretamente:
+
+sh
+Copiar código
+oc get certificates -n openshift-ingress-operator
+oc describe certificate <nome-do-certificado> -n openshift-ingress-operator
+5. Reinicie os Pods
+Depois de atualizar os certificados, é uma boa prática reiniciar os Pods que dependem dos certificados. Isso pode ser feito com:
+
+sh
+Copiar código
+oc delete pod --all -n openshift-ingress
+Considerações Adicionais
+Backup: Faça backup dos Secrets e ConfigMaps antes de fazer alterações.
+Documentação: Consulte a documentação oficial do OpenShift para mais detalhes e melhores práticas.
+Exemplos de Comandos:
+sh
+Copiar código
+# Verificar certificados
+oc get certificates -n openshift-ingress-operator
+
+# Descrever um certificado específico
+oc describe certificate <nome-do-certificado> -n openshift-ingress-operator
+
+# Deletar e regenerar secret do Ingress
+oc delete secret router-certs-default -n openshift-ingress
+
+# Aprovar solicitações de certificados
+oc adm certificate approve <nome-da-solicitação>
+
+# Reiniciar pods do Ingress
+oc delete pod --all -n openshift-ingress
+Atualização do Certificado do Servidor API
+Se o certificado do servidor API estiver expirando, você precisará regenerá-lo também. Isso pode ser feito pelo comando:
+
+sh
+Copiar código
+oc adm ca create-server-cert --signer-cert=/etc/kubernetes/ca/ca.pem --signer-key=/etc/kubernetes/ca/ca-key.pem --signer-serial=/etc/kubernetes/ca/ca-config.json --hostnames='kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster.local,localhost,127.0.0.1' --cert=/etc/kubernetes/apiserver.crt --key=/etc/kubernetes/apiserver.key
+Depois de fazer isso, reinicie o servidor API.
+
+Lembre-se de monitorar os logs e o estado dos recursos após a renovação para garantir que tudo esteja funcionando corretamente.
