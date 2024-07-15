@@ -16,3 +16,7 @@ https://docs.openshift.com/container-platform/4.8/logging/cluster-logging-deploy
 4s          Warning   ProvisioningFailed    persistentvolumeclaim/elasticsearch-elasticsearch-cdm-mbdm036x-1   Failed to provision volume with StorageClass "thin": unable to find node bpocp-ttmft-master-0: No VM found
 3s          Warning   ProvisioningFailed    persistentvolumeclaim/elasticsearch-elasticsearch-cdm-mbdm036x-2   Failed to provision volume with StorageClass "thin": unable to find node bpocp-ttmft-master-0: No VM found
 3s          Warning   ProvisioningFailed    persistentvolumeclaim/elasticsearch-elasticsearch-cdm-mbdm036x-3   Failed to provision volume with StorageClass "thin": unable to find node bpocp-ttmft-master-0: No VM found
+
+
+
+ mkdir $(TZ="GMT-2" date +"%Y-%m-%d")
