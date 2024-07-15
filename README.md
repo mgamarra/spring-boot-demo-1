@@ -21,3 +21,28 @@ https://docs.openshift.com/container-platform/4.8/logging/cluster-logging-deploy
 
  mkdir $(TZ="GMT-2" date +"%Y-%m-%d")
 echo -e  '#!/bin/bash\n' > t-01.sh && chmod +x *sh
+
+
+2024-06-03; analise resolucao alertast https://0lo4.monops.cloud/grafana/d/e5KUfUCVz/painel-de-servico-v2?orgId=1&refresh=10s&from=now-1h&to=now
+2024-06-04; analise resolucao alertast https://0lo4.monops.cloud/grafana/d/e5KUfUCVz/painel-de-servico-v2?orgId=1&refresh=10s&from=now-1h&to=now
+2024-06-05; análise falha conexão servidor DS-PRD-OPENSHIFT-01
+2024-06-06; análise falha conexão servidor DS-PRD-OPENSHIFT-01; atendimento TK292922
+2024-06-07; análise falha conexão servidor DS-PRD-OPENSHIFT-01; atendimento TK290058
+
+2024-06-10; atuação indisponibilidade cluster PRD, 
+2024-06-11; atuação indisponibilidade cluster PRD, Carla Francisco
+2024-06-12; atuação indisponibilidade cluster PRD;indisponibildade concedidos
+2024-06-13; bp-elr-prd atuação indisponibilidade bp-elr-prd em PRD, atendimento tk172662
+2024-06-14; atendimento tk172662, tk172707 e TK293499, atuacao indisponibildade concedidos
+
+2024-06-17; atendimento TK293499, indisponibildade concedidos
+2024-06-18; acompanhamento execucao jobs concedidos
+2024-06-19; levantamento de permissoes econfiguração acessos usuário aos openshift prd e uat
+2024-06-20; levantamento de permissoes econfiguração acessos usuário aos openshift prd e uat
+2024-06-21; configuração acessos usuário aos openshift prd e uat
+
+2024-06-24; atendimento tk294735
+2024-06-25; atendimento tk294735
+2024-06-26; atendimento tk295703 configuração acessos Mateus Teixeira Ponce de Leon PRD
+2024-06-27; atendimento tk295703 e TK295803, acompanhamento primeiro acesso, redeploy paymetn-service Gustava Souza
+2024-06-28; atendimento tk295703 configuração acessos Mateus Teixeira Ponce de Leon UAT, acompanhamento 
