@@ -20,3 +20,4 @@ https://docs.openshift.com/container-platform/4.8/logging/cluster-logging-deploy
 
 
  mkdir $(TZ="GMT-2" date +"%Y-%m-%d")
+echo -e  '#!/bin/bash\n' > t-01.sh && chmod +x *sh
