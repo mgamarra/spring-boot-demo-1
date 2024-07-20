@@ -46,3 +46,7 @@ echo -e  '#!/bin/bash\n' > t-01.sh && chmod +x *sh
 2024-06-26; atendimento tk295703 configuração acessos Mateus Teixeira Ponce de Leon PRD
 2024-06-27; atendimento tk295703 e TK295803, acompanhamento primeiro acesso, redeploy paymetn-service Gustava Souza
 2024-06-28; atendimento tk295703 configuração acessos Mateus Teixeira Ponce de Leon UAT, acompanhamento 
+
+
+oc -n pgn-testes get deployments --no-headers=true -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name | sort | awk '{printf "oc -n %s scale deployment  %s --replicas=1  \n", $1, $2} ' | echo
+
