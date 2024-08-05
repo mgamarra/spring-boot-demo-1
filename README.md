@@ -50,3 +50,6 @@ echo -e  '#!/bin/bash\n' > t-01.sh && chmod +x *sh
 
 oc -n pgn-testes get deployments --no-headers=true -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name | sort | awk '{printf "oc -n %s scale deployment  %s --replicas=1  \n", $1, $2} ' | echo
 
+
+
+echo | openssl s_client -servername example.com -connect example.com:443 2>/dev/null | openssl x509 -noout -dates -issuer -subject
